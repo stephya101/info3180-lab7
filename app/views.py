@@ -5,9 +5,12 @@ Werkzeug Documentation:  https://werkzeug.palletsprojects.com/
 This file creates your application.
 """
 
+
 from app import app
 from flask import render_template, request, jsonify, send_file
 import os
+from app.forms import UploadForm
+from werkzeug.utils import secure_filename
 
 
 ###
@@ -22,6 +25,24 @@ def index():
 ###
 # The functions below should be applicable to all Flask apps.
 ###
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    form = UploadForm()   
+    if request.form == 'POST' and form.validate_on_submit():
+        description = request.form['description']
+        image = request.files['file']
+        
+        fileob= secure_filename(image.filename)
+        image.save(os.path.join(app.config['UPLOAD_FOLDER'], fileob))
+
+        jsonMessage = [{"message": "File Upload Successful", "filename": "your-uploaded-file.jpg", "description": "Some description for your image"}]
+        return jsonify(jsonMessage=jsonMessage)
+    else:
+        error_info= form_errors(form)
+        error = [{"errors": error_info}]
+        return jsonify(errors=error)
+
+
 
 # Here we define a function to collect form errors from Flask-WTF
 # which we can later use
