@@ -11,6 +11,8 @@ from flask import render_template, request, jsonify, send_file
 import os
 from app.forms import UploadForm
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import generate_csrf
+
 
 
 ###
@@ -28,21 +30,22 @@ def index():
 @app.route('/api/upload', methods=['POST'])
 def upload():
     form = UploadForm()   
-    if request.form == 'POST' and form.validate_on_submit():
-        description = request.form['description']
-        image = request.files['file']
-        
-        fileob= secure_filename(image.filename)
-        image.save(os.path.join(app.config['UPLOAD_FOLDER'], fileob))
-
-        jsonMessage = [{"message": "File Upload Successful", "filename": "your-uploaded-file.jpg", "description": "Some description for your image"}]
-        return jsonify(jsonMessage=jsonMessage)
-    else:
-        error_info= form_errors(form)
-        error = [{"errors": error_info}]
-        return jsonify(errors=error)
-
-
+    if request.method == "POST":
+        formobj = UploadForm()
+        if formobj.validate_on_submit():
+            fileobj = request.files['photo']
+            sanitizedname = secure_filename(fileobj.filename)
+            fileobj.save(os.path.join(app.config['UPLOAD_FOLDER'], sanitizedname))
+            jsonMessage= {
+                "message": "File Upload Successful",
+                "filename": sanitizedname,
+                "description": formobj.description.data
+            }
+            return jsonify(jsonMessage)
+        return jsonify(form_errors(formobj))
+@app.route('/api/csrf-token', methods=['GET'])
+def get_csrf():
+ return jsonify({'csrf_token': generate_csrf()})
 
 # Here we define a function to collect form errors from Flask-WTF
 # which we can later use
